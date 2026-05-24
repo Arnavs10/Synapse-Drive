@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🧠 Synapse Drive
 
@@ -206,14 +206,14 @@ pip install numpy pandas scikit-fuzzy tensorflow scikit-learn matplotlib seaborn
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Arnavs10/Synapse-Drive.git
+    git clone https://github.com/Arnavs10/Synapse-Drive.git
    cd Synapse-Drive
    ```
 
 2. **Open the notebook:**
    ```bash
-   jupyter notebook "Final_Soft_Computing_Project_Arnav_Shukla, Manit and Yug.ipynb"
-   ```
+    jupyter notebook Synapse_Drive_ML_Pipeline.ipynb
+    ```
    *Or upload to [Google Colab](https://colab.research.google.com) for cloud execution.*
 
 3. **Run all cells** — the notebook trains the LSTM, runs fuzzy inference, and generates all visualizations.
@@ -232,29 +232,16 @@ open adas_v3_blue.html    # macOS
 ```
 Synapse-Drive/
 │
-├── Final_Soft_Computing_Project_Arnav_Shukla, Manit and Yug.ipynb
+├── Synapse_Drive_ML_Pipeline.ipynb
 │   └── Complete Jupyter notebook — Fuzzy Logic + LSTM + Hybrid Engine
 │
 ├── adas_v3_blue.html
 │   └── Interactive Web Dashboard (React 18 + Chart.js, self-contained)
 │
-├── Detailed_Code_and_Models_Guide.md
-│   └── Block-by-block code walkthrough with viva Q&A
-│
-├── Final_Viva_Preparation_Guide.md
-│   └── Comprehensive viva preparation guide
-│
-├── Website_Dashboard_Explanation.md
-│   └── Detailed explanation of every dashboard component
-│
-├── Arnav Shukla, Manit Kumar, Yug Yash Nirwan Soft Computing Mini Project PPT.pptx
-│   └── Project presentation slides
-│
-├── Arnav Shukla, Manit Kumar, Yug Yash Nirwan Soft Computing Mini Project Report.docx
-│   └── Formal project report
-│
 ├── Screenshot 2026-04-20 at 4.55.07 PM.png
 │   └── Dashboard screenshot
+│
+├── .gitignore
 │
 └── README.md
 ```
@@ -316,4 +303,4 @@ Synapse-Drive/
 *Mamdani Fuzzy Logic × LSTM Neural Networks × Adaptive Hybrid Fusion*
 
 </div>
-]]>
+
