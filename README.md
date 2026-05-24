@@ -14,10 +14,6 @@
 
 <br/>
 
-<img src="Screenshot 2026-04-20 at 4.55.07 PM.png" alt="Synapse Drive Dashboard" width="90%"/>
-
-*Interactive ADAS Dashboard — Real-time fuzzy inference, LSTM collision prediction & hybrid risk assessment*
-
 </div>
 
 ---
@@ -271,19 +267,6 @@ Synapse-Drive/
 | 🛣️ Highway | 80m | 80 km/h | 48.3% | 51.7% | **MODERATE** |
 | 😌 Calm | 50m | 20 km/h | 11.7% | 51.7% | **LOW** |
 | ✅ Safe | 95m | 10 km/h | 11.7% | 15.2% | **LOW** |
-
----
-
-## 👥 Team
-
-| Name | Role |
-|------|------|
-| **Arnav Shukla** | Lead Developer & System Architect |
-| **Manit Kumar** | Co-Developer |
-| **Yug Yash Nirwan** | Co-Developer |
-
-**Course:** Soft Computing (CSET326)  
-**Semester:** 6th Semester
 
 ---
 
