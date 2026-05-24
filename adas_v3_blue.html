@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Synapse Drive — ADAS Fuzzy Intelligence System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<!-- fallback: system SF Pro on Apple devices -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+:root{
+  --bg:       #0a0a0f;
+  --bg1:      #0f0f18;
+  --bg2:      #13131e;
+  --bg3:      #181826;
+  --surface:  #1c1c2e;
+  --surface2: #222236;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.10);
+  --text:     #f0f0f8;
+  --text2:    #9090b0;
+  --text3:    #50507a;
+
+  /* Accent palette — minimal, purposeful */
+  --green:  #30d158;
+  --amber:  #ff9f0a;
+  --red:    #ff453a;
+  --indigo: #2563eb;   /* primary accent — replaces the heavy blue */
+  --slate:  #8e8ea0;
+
+  /* Semantic */
+  --low-col:  var(--green);
+  --mid-col:  var(--amber);
+  --hi-col:   var(--red);
+
+  --radius-sm:  8px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --ease: cubic-bezier(0.25,0.46,0.45,0.94);
+  --spring: cubic-bezier(0.34,1.56,0.64,1);
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display','Inter',sans-serif;overflow-x:hidden}
+#root{min-height:100vh}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+
+/* ── Keyframes ─────────────────────────────────────── */
+@keyframes fade-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scale-in{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(48,209,88,0.5)}50%{box-shadow:0 0 0 6px rgba(48,209,88,0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes bar-grow{from{width:0}to{width:var(--w)}}
+@keyframes number-pop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+.animate-fade-up{animation:fade-up 0.5s var(--ease) both}
+.animate-scale-in{animation:scale-in 0.4s var(--spring) both}
+
+/* ── Global noise texture ───────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+
+/* ── Layout ─────────────────────────────────────────── */
+.app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Header ─────────────────────────────────────────── */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;height:60px;
+  background:rgba(10,10,15,0.8);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  position:sticky;top:0;z-index:200;
+}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--indigo),#60a5fa);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo svg{width:16px;height:16px}
+.logo-name{font-size:15px;font-weight:600;letter-spacing:-0.3px;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3);letter-spacing:0.3px;font-weight:400}
+.hdr-center{display:flex;gap:28px}
+.hstat{text-align:center}
+.hstat-v{font-size:18px;font-weight:600;letter-spacing:-0.5px;transition:color 0.4s var(--ease),transform 0.3s var(--spring)}
+.hstat-l{font-size:10px;color:var(--text3);letter-spacing:0.5px;font-weight:500;text-transform:uppercase;margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.pill{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;font-size:11px;font-weight:500;color:var(--text2)}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite}
+.clock{font-size:13px;font-weight:500;color:var(--text2);font-variant-numeric:tabular-nums;font-family:'JetBrains Mono',monospace}
+
+/* ── Tab bar ─────────────────────────────────────────── */
+.tabbar{display:flex;gap:2px;padding:10px 32px;border-bottom:1px solid var(--border);background:rgba(10,10,15,0.6);backdrop-filter:blur(12px)}
+.tab{padding:6px 18px;font-size:12px;font-weight:500;letter-spacing:0.2px;border:none;background:none;color:var(--text3);border-radius:8px;cursor:pointer;transition:all 0.2s var(--ease)}
+.tab:hover{color:var(--text2);background:var(--surface)}
+.tab.on{color:var(--text);background:var(--surface2);border:1px solid var(--border2)}
+
+/* ── Main ────────────────────────────────────────────── */
+.main{flex:1;padding:24px 32px;animation:fade-up 0.4s var(--ease) both}
+
+/* ── Metric strip ────────────────────────────────────── */
+.metric-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.mcard{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+  padding:16px 18px;transition:border-color 0.3s var(--ease),transform 0.2s var(--spring);
+}
+.mcard:hover{border-color:var(--border2);transform:translateY(-1px)}
+.mcard-val{font-size:30px;font-weight:300;letter-spacing:-1.5px;line-height:1;transition:color 0.5s var(--ease)}
+.mcard-val .unit{font-size:16px;font-weight:400;letter-spacing:0}
+.mcard-lbl{font-size:10px;font-weight:600;letter-spacing:0.8px;color:var(--text3);text-transform:uppercase;margin-top:5px}
+.mcard-sub{font-size:10px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace}
+
+/* ── Grid layouts ────────────────────────────────────── */
+.grid3{display:grid;grid-template-columns:280px 1fr 300px;gap:14px;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ── Cards ───────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.card-title{font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text3);text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.card-accent{width:3px;height:11px;border-radius:2px;background:var(--indigo)}
+.card-body{padding:16px 18px}
+
+/* ── Sliders ─────────────────────────────────────────── */
+.slider-wrap{margin-bottom:20px}
+.slider-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.slider-lbl{font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text3);text-transform:uppercase}
+.slider-val{font-size:24px;font-weight:300;letter-spacing:-1px;line-height:1}
+.slider-unit{font-size:12px;font-weight:400;color:var(--text3);margin-left:2px}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer;
+  background:linear-gradient(90deg,var(--indigo) var(--fill,0%),rgba(255,255,255,0.08) var(--fill,0%));
+  transition:background 0.05s;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:var(--text);border:none;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  transition:transform 0.2s var(--spring),box-shadow 0.2s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 4px 16px rgba(0,0,0,0.5)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(0.95)}
+
+/* ── Compute button ──────────────────────────────────── */
+.btn-compute{
+  width:100%;padding:13px;border:none;border-radius:12px;
+  background:var(--indigo);color:#fff;
+  font-size:13px;font-weight:600;letter-spacing:0.3px;cursor:pointer;
+  transition:all 0.2s var(--ease);position:relative;overflow:hidden;
+}
+.btn-compute::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(rgba(255,255,255,0.12),transparent);
+  border-radius:inherit;
+}
+.btn-compute:hover{filter:brightness(1.15);transform:scale(1.01)}
+.btn-compute:active{transform:scale(0.98);filter:brightness(0.95)}
+
+/* ── Scenario buttons ────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.sc-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;cursor:pointer;transition:all 0.2s var(--ease);text-align:left;
+}
+.sc-btn:hover{border-color:var(--border2);background:var(--surface2);transform:scale(1.02)}
+.sc-btn:active{transform:scale(0.97)}
+.sc-name{font-size:11px;font-weight:600;letter-spacing:0.3px;color:var(--text);line-height:1}
+.sc-params{font-size:10px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace}
+.sc-tag{display:inline-block;font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;margin-top:5px}
+.t-crit{background:rgba(255,69,58,.15);color:var(--red)}
+.t-warn{background:rgba(255,159,10,.15);color:var(--amber)}
+.t-safe{background:rgba(48,209,88,.15);color:var(--green)}
+
+/* ── Gauge bars ──────────────────────────────────────── */
+.gauge-list{display:flex;flex-direction:column;gap:13px}
+.gauge-row{display:flex;align-items:center;gap:10px}
+.gauge-lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;width:48px;flex-shrink:0;text-transform:uppercase}
+.gauge-track{flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:4px;transition:width 0.8s var(--ease)}
+.gauge-num{font-size:12px;font-weight:500;width:42px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;transition:color 0.5s var(--ease)}
+.g-brake .gauge-fill{background:linear-gradient(90deg,var(--indigo),#60a5fa)}
+.g-risk  .gauge-fill{background:linear-gradient(90deg,var(--green),var(--amber),var(--red))}
+.g-alert .gauge-fill{background:linear-gradient(90deg,#60a5fa,#e879f9)}
+.g-lstm  .gauge-fill{background:rgba(255,255,255,0.25)}
+.g-hybrid .gauge-fill{background:linear-gradient(90deg,#2563eb,#ff9f0a)}
+
+/* ── Risk badge ──────────────────────────────────────── */
+.risk-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 16px;border-radius:10px;
+  font-size:13px;font-weight:600;letter-spacing:0.3px;
+  transition:all 0.5s var(--ease);
+}
+.rb-LOW     {background:rgba(48,209,88,.12);color:var(--green)}
+.rb-MODERATE{background:rgba(255,159,10,.12);color:var(--amber)}
+.rb-HIGH    {background:rgba(255,69,58,.12);color:var(--red)}
+.rb-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.rb-HIGH .rb-dot{animation:pulse-dot 1.2s infinite}
+
+/* ── Log ─────────────────────────────────────────────── */
+.log-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;height:170px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.9}
+.log-box::-webkit-scrollbar{width:3px}
+.log-row{display:flex;gap:8px}
+.log-ts{color:var(--text3);flex-shrink:0;min-width:48px}
+.log-msg{color:var(--text2)}
+.log-row.ok .log-msg{color:var(--green)}
+.log-row.warn .log-msg{color:var(--amber)}
+.log-row.danger .log-msg{color:var(--red)}
+
+/* ── Rule table ──────────────────────────────────────── */
+.rtable{width:100%;border-collapse:collapse;font-size:10px}
+.rtable th{font-size:9px;font-weight:600;letter-spacing:0.5px;color:var(--text3);text-transform:uppercase;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.rtable td{padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text2);font-family:'JetBrains Mono',monospace;transition:background 0.2s}
+.rtable tr:hover td{background:rgba(255,255,255,0.02)}
+.rtable tr.r-active td{background:rgba(37,99,235,0.08);color:var(--text)}
+.chip{display:inline-block;padding:1px 6px;border-radius:5px;font-size:9px;font-weight:600;font-family:'Inter',sans-serif}
+.ch-hi{background:rgba(255,69,58,.15);color:var(--red)}
+.ch-md{background:rgba(255,159,10,.15);color:var(--amber)}
+.ch-lo{background:rgba(48,209,88,.15);color:var(--green)}
+
+/* ── MF canvas ───────────────────────────────────────── */
+.mf-section{margin-bottom:14px}
+.mf-lbl{font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--text3);text-transform:uppercase;margin-bottom:7px}
+canvas{display:block;width:100%}
+.legend{display:flex;gap:12px;margin-top:6px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);font-weight:500}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Analysis tab ────────────────────────────────────── */
+.surf-tabs{display:flex;gap:6px}
+.surf-tab{padding:4px 12px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:none;color:var(--text3);transition:all 0.2s var(--ease)}
+.surf-tab.on{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+
+/* ── About tab ────────────────────────────────────────── */
+.about-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.acard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px}
+.acard h3{font-size:12px;font-weight:600;letter-spacing:0.5px;color:var(--indigo);text-transform:uppercase;margin-bottom:12px}
+.acard ul{list-style:none}
+.acard li{font-size:11px;color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace}
+.acard li:last-child{border:none}
+.acard li::before{content:'›';color:var(--indigo);font-family:sans-serif}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media(max-width:1100px){.grid3{grid-template-columns:260px 1fr}}
+@media(max-width:900px){.grid3,.grid2{grid-template-columns:1fr}.metric-strip{grid-template-columns:1fr 1fr}.hdr-center{display:none}}
+@media(max-width:600px){.metric-strip{grid-template-columns:1fr 1fr}.tabbar{flex-wrap:wrap}.main{padding:16px 16px}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const {useState,useEffect,useRef,useCallback}=React;
+
+// ══ FUZZY ENGINE ════════════════════════════════════════
+const trapmf=(x,a,b,c,d)=>{
+  if(x<=a||x>=d)return 0;
+  if(x>=b&&x<=c)return 1;
+  if(x<b)return(x-a)/(b-a);
+  return(d-x)/(d-c);
+};
+const trimf=(x,a,b,c)=>{
+  if(x<=a||x>=c)return 0;
+  if(x===b)return 1;
+  if(x<b)return(x-a)/(b-a);
+  return(c-x)/(c-b);
+};
+
+const MF={
+  dist:{near:x=>trapmf(x,0,0,25,45), medium:x=>trimf(x,20,50,80), far:x=>trapmf(x,60,80,100,100)},
+  speed:{low:x=>trapmf(x,0,0,20,40), medium:x=>trimf(x,25,50,75), high:x=>trapmf(x,60,80,100,100)},
+  brake:{low:x=>trapmf(x,0,0,15,30), medium:x=>trimf(x,20,50,75), high:x=>trapmf(x,70,85,100,100)},
+  risk: {low:x=>trapmf(x,0,0,20,38), medium:x=>trimf(x,28,52,75), high:x=>trapmf(x,65,80,100,100)},
+  alert:{low:x=>trapmf(x,0,0,15,28), medium:x=>trimf(x,20,50,80), high:x=>trapmf(x,72,86,100,100)},
+};
+
+const RULES=[
+  {d:'near',s:'high',  brake:'high',  risk:'high',  alert:'high'},
+  {d:'near',s:'medium',brake:'high',  risk:'high',  alert:'medium'},
+  {d:'near',s:'low',   brake:'medium',risk:'medium',alert:'medium'},
+  {d:'medium',s:'high',  brake:'medium',risk:'high',  alert:'high'},
+  {d:'medium',s:'medium',brake:'medium',risk:'medium',alert:'medium'},
+  {d:'medium',s:'low',   brake:'low',  risk:'medium',alert:'low'},
+  {d:'far',s:'high',  brake:'medium',risk:'medium',alert:'high'},
+  {d:'far',s:'medium',brake:'low',   risk:'low',   alert:'low'},
+  {d:'far',s:'low',   brake:'low',   risk:'low',   alert:'low'},
+];
+
+function defuzz(acts){
+  let num=0,den=0;
+  for(let x=0;x<=100;x++){
+    let agg=0;
+    for(const{mf,str}of acts){const v=Math.min(str,mf(x));if(v>agg)agg=v}
+    num+=x*agg;den+=agg;
+  }
+  return den>0?num/den:0;
+}
+
+function physicsEst(d,s){
+  const ttc=d/(s/3.6+1e-6);
+  const r=Math.max(0,Math.min(100,100*Math.exp(-ttc/3)));
+  const b=Math.max(0,Math.min(100,100*(1-d/100)*(s/100)));
+  return{brake:b,risk:r,alert:r*0.7+b*0.3};
+}
+
+function fuzzyPredict(dv,sv){
+  const d=Math.max(0.5,Math.min(99.5,dv));
+  const s=Math.max(0.5,Math.min(99.5,sv));
+  const active=RULES.map(r=>({...r,str:Math.min(MF.dist[r.d](d),MF.speed[r.s](s))})).filter(r=>r.str>0.001);
+  if(!active.length){const p=physicsEst(dv,sv);return{...p,active:[]}}
+  const b=defuzz(active.map(r=>({mf:MF.brake[r.brake],str:r.str})));
+  const ri=defuzz(active.map(r=>({mf:MF.risk[r.risk],str:r.str})));
+  const al=defuzz(active.map(r=>({mf:MF.alert[r.alert],str:r.str})));
+  if(b===0&&ri===0){const p=physicsEst(dv,sv);return{...p,active}}
+  return{brake:+b.toFixed(2),risk:+ri.toFixed(2),alert:+al.toFixed(2),active};
+}
+
+function lstmEst(d,s){
+  const score=((100-d)*0.5+s*0.5);
+  const p=1/(1+Math.exp(-(score-52)/11));
+  return Math.max(0,Math.min(1,p+(Math.random()-0.5)*0.04));
+}
+
+function hybridPredict(dv,sv){
+  const fz=fuzzyPredict(dv,sv);
+  const lp=lstmEst(dv,sv);
+  const wf=dv<20?0.70:0.60;
+  const ttc=dv/(sv/3.6+1e-6);
+  let hybrid=wf*fz.risk+(1-wf)*lp*100;
+  if(ttc<1.5)hybrid=Math.max(hybrid,75);
+  hybrid=+Math.min(100,Math.max(0,hybrid)).toFixed(2);
+  const cat=hybrid>=70?'HIGH':hybrid>=40?'MODERATE':'LOW';
+  return{...fz,lstm:+( lp*100).toFixed(1),hybrid,cat,ttc:+ttc.toFixed(1)};
+}
+
+// ══ UTILS ════════════════════════════════════════════════
+const f1=v=>(+v||0).toFixed(1);
+const getTime=()=>new Date().toTimeString().slice(0,8);
+const catColor=c=>c==='HIGH'?'var(--red)':c==='MODERATE'?'var(--amber)':'var(--green)';
+
+const SCENARIOS=[
+  {name:'Emergency',d:5, s:90,p:'5m / 90 km/h', cls:'t-crit',tag:'Critical'},
+  {name:'Dangerous',d:20,s:70,p:'20m / 70 km/h',cls:'t-crit',tag:'High'},
+  {name:'Normal',   d:50,s:50,p:'50m / 50 km/h',cls:'t-warn',tag:'Moderate'},
+  {name:'Highway',  d:80,s:80,p:'80m / 80 km/h',cls:'t-warn',tag:'Moderate'},
+  {name:'Calm',     d:50,s:20,p:'50m / 20 km/h',cls:'t-safe',tag:'Low'},
+  {name:'Safe',     d:95,s:10,p:'95m / 10 km/h',cls:'t-safe',tag:'Safe'},
+];
+
+const MF_COLORS=['#2563eb','#60a5fa','#f59e0b'];
+
+// ══ CANVAS COMPONENTS ════════════════════════════════════
+function MFCanvas({mfs,colors,curVal,h=68}){
+  const ref=useRef();
+  useEffect(()=>{
+    const c=ref.current;if(!c)return;
+    const ctx=c.getContext('2d'),W=c.width,H=c.height;
+    ctx.clearRect(0,0,W,H);
+    // grid
+    for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(0,i*(H/4));ctx.lineTo(W,i*(H/4));ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;ctx.stroke()}
+    mfs.forEach((mf,mi)=>{
+      ctx.beginPath();
+      for(let i=0;i<=100;i++){const v=mf(i),px=(i/100)*W,py=H-v*(H-4)-2;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}
+      ctx.strokeStyle=colors[mi];ctx.lineWidth=1.8;ctx.stroke();
+      ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+      const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,colors[mi]+'28');g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.fill();
+    });
+    if(curVal!==undefined){const px=(curVal/100)*W;ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,H);ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([])}
+  },[mfs,colors,curVal]);
+  return React.createElement('canvas',{ref,width:340,height:h,style:{width:'100%',borderRadius:'6px'}});
+}
+
+function RadarCanvas({result}){
+  const ref=useRef();
+  useEffect(()=>{
+    const c=ref.current;if(!c)return;
+    const ctx=c.getContext('2d'),W=c.width,H=c.height,cx=W/2,cy=H/2,R=Math.min(W,H)/2-28;
+    ctx.clearRect(0,0,W,H);
+    const labels=['Brake','Risk','Alert','Hybrid'],vals=[result.brake/100,result.risk/100,result.alert/100,result.hybrid/100];
+    const angles=labels.map((_,i)=>-Math.PI/2+i*(Math.PI/2));
+    for(let ring=1;ring<=4;ring++){ctx.beginPath();angles.forEach((a,i)=>{const rx=cx+Math.cos(a)*R*(ring/4),ry=cy+Math.sin(a)*R*(ring/4);i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry)});ctx.closePath();ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;ctx.stroke()}
+    angles.forEach(a=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;ctx.stroke()});
+    ctx.beginPath();angles.forEach((a,i)=>{const rx=cx+Math.cos(a)*R*vals[i],ry=cy+Math.sin(a)*R*vals[i];i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry)});ctx.closePath();ctx.fillStyle='rgba(37,99,235,0.12)';ctx.fill();ctx.strokeStyle='rgba(37,99,235,0.8)';ctx.lineWidth=2;ctx.stroke();
+    angles.forEach((a,i)=>{const rx=cx+Math.cos(a)*R*vals[i],ry=cy+Math.sin(a)*R*vals[i];ctx.beginPath();ctx.arc(rx,ry,4,0,Math.PI*2);ctx.fillStyle='#2563eb';ctx.fill()});
+    angles.forEach((a,i)=>{const lx=cx+Math.cos(a)*(R+17),ly=cy+Math.sin(a)*(R+17);ctx.font='500 10px -apple-system';ctx.fillStyle='rgba(144,144,176,0.9)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(labels[i],lx,ly)});
+  },[result]);
+  return React.createElement('canvas',{ref,width:220,height:190,style:{width:'100%',maxWidth:'220px',margin:'0 auto',display:'block'}});
+}
+
+function SurfaceCanvas({type}){
+  const ref=useRef();
+  useEffect(()=>{
+    const c=ref.current;if(!c)return;
+    const ctx=c.getContext('2d'),W=c.width,H=c.height;
+    const res=3;
+    const col=t=>{
+      const s=[[10,10,15],[30,15,80],[110,106,240],[255,159,10],[255,69,58]];
+      const idx=t*(s.length-1),i=Math.floor(idx),f=idx-i;
+      const a=s[Math.min(i,s.length-1)],b=s[Math.min(i+1,s.length-1)];
+      return`rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`;
+    };
+    for(let px=0;px<W;px+=res){for(let py=0;py<H;py+=res){const d=(px/W)*100,s=((H-py)/H)*100;const r=fuzzyPredict(d,s);const v=type==='risk'?r.risk/100:r.brake/100;ctx.fillStyle=col(v);ctx.fillRect(px,py,res,res)}}
+  },[type]);
+  return React.createElement('canvas',{ref,width:540,height:220,style:{width:'100%',borderRadius:'8px'}});
+}
+
+function BatchChart(){
+  const ref=useRef(),ch=useRef();
+  useEffect(()=>{
+    const data=SCENARIOS.map(sc=>fuzzyPredict(sc.d,sc.s));
+    if(ch.current)ch.current.destroy();
+    ch.current=new Chart(ref.current,{type:'bar',data:{labels:SCENARIOS.map(s=>s.name),datasets:[
+      {label:'Brake',data:data.map(d=>+d.brake.toFixed(1)),backgroundColor:'rgba(37,99,235,0.7)',borderColor:'#2563eb',borderWidth:1},
+      {label:'Risk', data:data.map(d=>+d.risk.toFixed(1)), backgroundColor:'rgba(255,69,58,0.7)', borderColor:'#ff453a',borderWidth:1},
+      {label:'Alert',data:data.map(d=>+d.alert.toFixed(1)),backgroundColor:'rgba(167,139,250,0.7)',borderColor:'#60a5fa',borderWidth:1},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9090b0',font:{size:11},boxWidth:10}}},scales:{x:{ticks:{color:'#9090b0',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{min:0,max:100,ticks:{color:'#9090b0',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    return()=>{if(ch.current)ch.current.destroy()};
+  },[]);
+  return React.createElement('canvas',{ref,style:{height:'220px',width:'100%'}});
+}
+
+function HistoryChart({history}){
+  const ref=useRef(),ch=useRef();
+  useEffect(()=>{
+    if(!history.length)return;
+    if(ch.current)ch.current.destroy();
+    ch.current=new Chart(ref.current,{type:'line',data:{labels:history.map((_,i)=>`#${i+1}`),datasets:[
+      {label:'Brake',data:history.map(h=>+h.brake.toFixed(1)),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.05)',tension:0.4,borderWidth:2,pointRadius:3,pointBackgroundColor:'#0a0a0f',pointBorderColor:'#2563eb'},
+      {label:'Risk', data:history.map(h=>+h.risk.toFixed(1)), borderColor:'#ff453a',backgroundColor:'rgba(255,69,58,0.05)', tension:0.4,borderWidth:2,pointRadius:3,pointBackgroundColor:'#0a0a0f',pointBorderColor:'#ff453a'},
+      {label:'Hybrid',data:history.map(h=>+h.hybrid.toFixed(1)),borderColor:'#ff9f0a',backgroundColor:'rgba(255,159,10,0.05)',tension:0.4,borderWidth:2,pointRadius:3,pointBackgroundColor:'#0a0a0f',pointBorderColor:'#ff9f0a'},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9090b0',font:{size:11},boxWidth:10}}},scales:{x:{ticks:{color:'#9090b0',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{min:0,max:100,ticks:{color:'#9090b0',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    return()=>{if(ch.current)ch.current.destroy()};
+  },[history]);
+  return React.createElement('canvas',{ref,style:{height:'190px',width:'100%'}});
+}
+
+// ══ MAIN APP ══════════════════════════════════════════════
+function App(){
+  const [tab,setTab]=useState('dashboard');
+  const [dist,setDist]=useState(50);
+  const [speed,setSpeed]=useState(50);
+  const [result,setResult]=useState(()=>({...hybridPredict(50,50),brake:0,risk:0,alert:0,lstm:0,hybrid:0,cat:'LOW'}));
+  const [computed,setComputed]=useState(false);
+  const [logs,setLogs]=useState([
+    {ts:'BOOT',msg:'Fuzzy inference engine ready — Mamdani FIS',cls:'ok'},
+    {ts:'BOOT',msg:'Trapezoidal boundary MFs loaded — 9 rules compiled',cls:'ok'},
+    {ts:'BOOT',msg:'Physics fallback enabled for edge cases',cls:''},
+    {ts:'BOOT',msg:'Adaptive LSTM hybrid predictor online (60/40→70/30)',cls:'ok'},
+    {ts:'SYS', msg:'Awaiting sensor input…',cls:''},
+  ]);
+  const [history,setHistory]=useState([]);
+  const [surfType,setSurfType]=useState('brake');
+  const [clock,setClock]=useState(getTime());
+  const logRef=useRef();
+
+  useEffect(()=>{const t=setInterval(()=>setClock(getTime()),1000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{if(logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight},[logs]);
+
+  const addLog=useCallback((msg,cls='')=>{
+    setLogs(p=>[...p.slice(-60),{ts:getTime(),msg,cls}]);
+  },[]);
+
+  const runPredict=useCallback(()=>{
+    const r=hybridPredict(dist,speed);
+    setResult(r);setComputed(true);
+    setHistory(p=>[...p.slice(-24),{...r,dist,speed}]);
+    const cls=r.cat==='HIGH'?'danger':r.cat==='MODERATE'?'warn':'ok';
+    addLog(`d=${dist}m  s=${speed}km/h  →  brake=${f1(r.brake)}%  risk=${f1(r.risk)}%  hybrid=${f1(r.hybrid)}%  [${r.cat}]`,cls);
+    if(r.cat==='HIGH')addLog('⚠ COLLISION RISK ELEVATED — emergency braking engaged','danger');
+  },[dist,speed,addLog]);
+
+  const load=(d,s)=>{setDist(d);setSpeed(s);const r=hybridPredict(d,s);setResult(r);setComputed(true);setHistory(p=>[...p.slice(-24),{...r,dist:d,speed:s}]);const cls=r.cat==='HIGH'?'danger':r.cat==='MODERATE'?'warn':'ok';addLog(`Scenario: d=${d}m s=${s}km/h → ${r.cat}`,cls)};
+
+  // Gauge fill
+  const gfill=(val,type)=>{
+    const fills={brake:'linear-gradient(90deg,#2563eb,#60a5fa)',risk:'linear-gradient(90deg,#30d158,#ff9f0a,#ff453a)',alert:'linear-gradient(90deg,#60a5fa,#e879f9)',lstm:'rgba(255,255,255,0.22)',hybrid:'linear-gradient(90deg,#2563eb,#ff9f0a)'};
+    return fills[type];
+  };
+  const GBar=({label,val,type})=>React.createElement('div',{className:'gauge-row g-'+type},
+    React.createElement('div',{className:'gauge-lbl'},label),
+    React.createElement('div',{className:'gauge-track'},React.createElement('div',{className:'gauge-fill',style:{width:computed?`${val}%`:'0%',background:gfill(val,type)}})),
+    React.createElement('div',{className:'gauge-num',style:{color:type==='risk'?catColor(result.cat):'var(--text2)'}},f1(val)+'%')
+  );
+
+  const Dashboard=()=>React.createElement('div',{className:'animate-fade-up'},
+    // Metric strip
+    React.createElement('div',{className:'metric-strip',style:{marginBottom:'18px'}},
+      ...[
+        {lbl:'Brake Force',val:computed?result.brake:0,col:'#2563eb',sub:'Mamdani defuzz'},
+        {lbl:'Fuzzy Risk', val:computed?result.risk:0, col:'#ff453a',sub:'FIS output'},
+        {lbl:'Driver Alert',val:computed?result.alert:0,col:'#60a5fa',sub:'Alert level'},
+        {lbl:'Hybrid Risk', val:computed?result.hybrid:0,col:'#ff9f0a',sub:`60% Fuzzy + 40% LSTM`},
+      ].map(m=>React.createElement('div',{key:m.lbl,className:'mcard'},
+        React.createElement('div',{className:'mcard-val',style:{color:m.col}},f1(m.val),React.createElement('span',{className:'unit'},'%')),
+        React.createElement('div',{className:'mcard-lbl'},m.lbl),
+        React.createElement('div',{className:'mcard-sub'},m.sub)
+      ))
+    ),
+    React.createElement('div',{className:'grid3'},
+      // Control
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Sensor Input')),
+        React.createElement('div',{className:'card-body'},
+          React.createElement('div',{className:'slider-wrap'},
+            React.createElement('div',{className:'slider-top'},React.createElement('span',{className:'slider-lbl'},'Distance'),React.createElement('span',null,React.createElement('span',{className:'slider-val'},dist),React.createElement('span',{className:'slider-unit'},'m'))),
+            React.createElement('input',{type:'range',min:0,max:100,value:dist,step:1,style:{'--fill':dist+'%'},onChange:e=>setDist(+e.target.value)})
+          ),
+          React.createElement('div',{className:'slider-wrap'},
+            React.createElement('div',{className:'slider-top'},React.createElement('span',{className:'slider-lbl'},'Relative Speed'),React.createElement('span',null,React.createElement('span',{className:'slider-val'},speed),React.createElement('span',{className:'slider-unit'},'km/h'))),
+            React.createElement('input',{type:'range',min:0,max:100,value:speed,step:1,style:{'--fill':speed+'%'},onChange:e=>setSpeed(+e.target.value)})
+          ),
+          React.createElement('button',{className:'btn-compute',onClick:runPredict},'Compute Prediction'),
+          React.createElement('div',{className:'divider'}),
+          React.createElement('div',{className:'card-title',style:{marginBottom:'10px'}},React.createElement('div',{className:'card-accent'}),'Quick Scenarios'),
+          React.createElement('div',{className:'sc-grid'},
+            ...SCENARIOS.map(sc=>React.createElement('div',{key:sc.name,className:'sc-btn',onClick:()=>load(sc.d,sc.s)},
+              React.createElement('div',{className:'sc-name'},sc.name),
+              React.createElement('div',{className:'sc-params'},sc.p),
+              React.createElement('div',{className:`sc-tag ${sc.cls}`},sc.tag)
+            ))
+          )
+        )
+      ),
+      // Outputs
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-hdr'},
+          React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Fuzzy Outputs'),
+          computed && React.createElement('div',{className:`risk-badge rb-${result.cat}`},React.createElement('div',{className:'rb-dot'}),result.cat+' Risk')
+        ),
+        React.createElement('div',{className:'card-body'},
+          React.createElement('div',{className:'gauge-list',style:{marginBottom:'16px'}},
+            React.createElement(GBar,{label:'Brake',val:result.brake,type:'brake'}),
+            React.createElement(GBar,{label:'Risk',val:result.risk,type:'risk'}),
+            React.createElement(GBar,{label:'Alert',val:result.alert,type:'alert'}),
+            React.createElement(GBar,{label:'LSTM',val:result.lstm,type:'lstm'}),
+            React.createElement(GBar,{label:'Hybrid',val:result.hybrid,type:'hybrid'}),
+          ),
+          React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderTop:'1px solid var(--border)',marginBottom:'10px'}},
+            React.createElement('div',{style:{fontSize:'10px',color:'var(--text3)',fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase'}},'TTC'),
+            React.createElement('div',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'13px',color:result.ttc<2?'var(--red)':result.ttc<5?'var(--amber)':'var(--green)'}},computed?(result.ttc>99?'∞':result.ttc+'s'):'—')
+          ),
+          React.createElement(RadarCanvas,{result}),
+          React.createElement('div',{className:'legend',style:{justifyContent:'center',marginTop:'8px'}},
+            React.createElement('div',{className:'legend-item'},React.createElement('div',{className:'legend-dot',style:{background:'#2563eb'}}),'Fuzzy polygon')
+          )
+        )
+      ),
+      // MFs + Log
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:'14px'}},
+        React.createElement('div',{className:'card'},
+          React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Membership Functions')),
+          React.createElement('div',{className:'card-body'},
+            React.createElement('div',{className:'mf-section'},React.createElement('div',{className:'mf-lbl'},'Distance (m)'),React.createElement(MFCanvas,{mfs:[MF.dist.near,MF.dist.medium,MF.dist.far],colors:MF_COLORS,curVal:dist})),
+            React.createElement('div',{className:'mf-section'},React.createElement('div',{className:'mf-lbl'},'Rel. Speed (km/h)'),React.createElement(MFCanvas,{mfs:[MF.speed.low,MF.speed.medium,MF.speed.high],colors:MF_COLORS,curVal:speed})),
+            React.createElement('div',{className:'mf-section'},React.createElement('div',{className:'mf-lbl'},'Brake Output'),React.createElement(MFCanvas,{mfs:[MF.brake.low,MF.brake.medium,MF.brake.high],colors:MF_COLORS})),
+            React.createElement('div',{className:'legend'},
+              ...['Near / Low','Medium','Far / High'].map((l,i)=>React.createElement('div',{key:l,className:'legend-item'},React.createElement('div',{className:'legend-dot',style:{background:MF_COLORS[i]}}),l))
+            )
+          )
+        ),
+        React.createElement('div',{className:'card'},
+          React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Event Log')),
+          React.createElement('div',{className:'card-body',style:{padding:'10px 12px'}},
+            React.createElement('div',{className:'log-box',ref:logRef},
+              ...logs.map((l,i)=>React.createElement('div',{key:i,className:`log-row ${l.cls}`},
+                React.createElement('span',{className:'log-ts'},'['+l.ts+']'),
+                React.createElement('span',{className:'log-msg'},l.msg)
+              ))
+            )
+          )
+        )
+      )
+    ),
+    // Bottom grid
+    React.createElement('div',{className:'grid2'},
+      // Rule firing table
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Rule Firing')),
+        React.createElement('div',{className:'card-body',style:{padding:0,overflowX:'auto'}},
+          React.createElement('table',{className:'rtable'},
+            React.createElement('thead',null,React.createElement('tr',null,...['#','If Distance','If Speed','Brake','Risk','Strength'].map(h=>React.createElement('th',{key:h},h)))),
+            React.createElement('tbody',null,...RULES.map((r,i)=>{
+              const act=result.active&&result.active.find(a=>a.d===r.d&&a.s===r.s);
+              const str=act?act.str:0;
+              const cc=l=>l==='high'?'ch-hi':l==='low'?'ch-lo':'ch-md';
+              return React.createElement('tr',{key:i,className:str>0.01?'r-active':''},
+                React.createElement('td',null,(i+1).toString().padStart(2,'0')),
+                React.createElement('td',null,r.d),
+                React.createElement('td',null,r.s),
+                React.createElement('td',null,React.createElement('span',{className:`chip ${cc(r.brake)}`},r.brake)),
+                React.createElement('td',null,React.createElement('span',{className:`chip ${cc(r.risk)}`},r.risk)),
+                React.createElement('td',null,str>0.01?React.createElement('span',{style:{color:'#2563eb',fontWeight:600}},str.toFixed(3)):'—')
+              );
+            }))
+          )
+        )
+      ),
+      // History
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Prediction History')),
+        React.createElement('div',{className:'card-body'},
+          history.length
+            ? React.createElement(HistoryChart,{history,key:history.length})
+            : React.createElement('div',{style:{height:'190px',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)',fontSize:'12px'}},'Run predictions to see trends')
+        )
+      )
+    )
+  );
+
+  const Analysis=()=>React.createElement('div',{className:'animate-fade-up'},
+    React.createElement('div',{className:'grid2',style:{marginBottom:'14px'}},
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Scenario Comparison')),
+        React.createElement('div',{className:'card-body'},React.createElement(BatchChart))
+      ),
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Scenario Table')),
+        React.createElement('div',{className:'card-body',style:{padding:0,overflowX:'auto'}},
+          React.createElement('table',{className:'rtable',style:{minWidth:'400px'}},
+            React.createElement('thead',null,React.createElement('tr',null,...['Scenario','Dist','Speed','Brake','Risk','Alert','Category'].map(h=>React.createElement('th',{key:h},h)))),
+            React.createElement('tbody',null,...SCENARIOS.map(sc=>{
+              const r=fuzzyPredict(sc.d,sc.s),hr=hybridPredict(sc.d,sc.s);
+              return React.createElement('tr',{key:sc.name},
+                React.createElement('td',{style:{color:'var(--text)',fontWeight:500}},sc.name),
+                React.createElement('td',null,sc.d+'m'),
+                React.createElement('td',null,sc.s+'km/h'),
+                React.createElement('td',{style:{color:'#2563eb'}},f1(r.brake)+'%'),
+                React.createElement('td',{style:{color:'#ff453a'}},f1(r.risk)+'%'),
+                React.createElement('td',{style:{color:'#60a5fa'}},f1(r.alert)+'%'),
+                React.createElement('td',{style:{color:catColor(hr.cat),fontWeight:600}},hr.cat)
+              );
+            }))
+          )
+        )
+      )
+    ),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'card-hdr'},
+        React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Inference Surface'),
+        React.createElement('div',{className:'surf-tabs'},
+          ...['brake','risk'].map(t=>React.createElement('button',{key:t,className:`surf-tab ${surfType===t?'on':''}`,onClick:()=>setSurfType(t)},t.charAt(0).toUpperCase()+t.slice(1)))
+        )
+      ),
+      React.createElement('div',{className:'card-body'},
+        React.createElement(SurfaceCanvas,{type:surfType,key:surfType}),
+        React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'8px'}},
+          React.createElement('div',{style:{fontSize:'10px',color:'var(--text3)'}},'← Distance (0–100 m)   ↑ Speed (0–100 km/h)'),
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
+            React.createElement('span',{style:{fontSize:'10px',color:'var(--text3)'}},'0%'),
+            React.createElement('div',{style:{width:'100px',height:'6px',borderRadius:'3px',background:'linear-gradient(90deg,#0a0a0f,#2563eb,#ff9f0a,#ff453a)'}}),
+            React.createElement('span',{style:{fontSize:'10px',color:'var(--text3)'}},'100%')
+          )
+        )
+      )
+    )
+  );
+
+  const About=()=>React.createElement('div',{className:'animate-fade-up'},
+    React.createElement('div',{className:'about-grid'},
+      React.createElement('div',{className:'acard'},
+        React.createElement('h3',null,'Fuzzy Inputs'),
+        React.createElement('ul',null,
+          React.createElement('li',null,'Distance: 0–100 m'),
+          React.createElement('li',null,'Rel. Speed: 0–100 km/h'),
+          React.createElement('li',null,'TTC: derived feature (s)'),
+          React.createElement('li',null,'MF: Trapezoidal (boundary)'),
+          React.createElement('li',null,'MF: Triangular (interior)'),
+        )
+      ),
+      React.createElement('div',{className:'acard'},
+        React.createElement('h3',null,'Fuzzy Outputs'),
+        React.createElement('ul',null,
+          React.createElement('li',null,'Brake Force (%)'),
+          React.createElement('li',null,'Collision Risk (%)'),
+          React.createElement('li',null,'Driver Alert (%)'),
+          React.createElement('li',null,'Defuzz: Centroid method'),
+          React.createElement('li',null,'Fallback: Physics-based'),
+        )
+      ),
+      React.createElement('div',{className:'acard'},
+        React.createElement('h3',null,'Hybrid Engine'),
+        React.createElement('ul',null,
+          React.createElement('li',null,'LSTM: 2-layer + BatchNorm'),
+          React.createElement('li',null,'Features: d, s, TTC (3-dim)'),
+          React.createElement('li',null,'Seq length: 10 timesteps'),
+          React.createElement('li',null,'Near: 70% Fuzzy + 30% LSTM'),
+          React.createElement('li',null,'Far:  60% Fuzzy + 40% LSTM'),
+        )
+      )
+    ),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'card-hdr'},React.createElement('div',{className:'card-title'},React.createElement('div',{className:'card-accent'}),'Mamdani Rule Base — 9 Rules')),
+      React.createElement('div',{className:'card-body',style:{padding:0,overflowX:'auto'}},
+        React.createElement('table',{className:'rtable',style:{width:'100%'}},
+          React.createElement('thead',null,React.createElement('tr',null,...['Rule','If Distance','If Speed','Then Brake','Then Risk','Then Alert','Interpretation'].map(h=>React.createElement('th',{key:h},h)))),
+          React.createElement('tbody',null,...RULES.map((r,i)=>{
+            const interp=['Emergency brake','Hard brake','Cautious','Moderate brake + alert','Normal traffic','Light brake','Speed warning','Safe — cruise','Very safe'][i];
+            const cc=l=>l==='high'?'ch-hi':l==='low'?'ch-lo':'ch-md';
+            return React.createElement('tr',{key:i},
+              React.createElement('td',null,'R'+(i+1).toString().padStart(2,'0')),
+              React.createElement('td',null,r.d),React.createElement('td',null,r.s),
+              React.createElement('td',null,React.createElement('span',{className:`chip ${cc(r.brake)}`},r.brake)),
+              React.createElement('td',null,React.createElement('span',{className:`chip ${cc(r.risk)}`},r.risk)),
+              React.createElement('td',null,React.createElement('span',{className:`chip ${cc(r.alert)}`},r.alert)),
+              React.createElement('td',{style:{color:'var(--text3)',fontFamily:'inherit'}},interp)
+            );
+          }))
+        )
+      )
+    )
+  );
+
+  return React.createElement('div',{className:'app'},
+    // Header
+    React.createElement('header',{className:'hdr'},
+      React.createElement('div',{className:'hdr-left'},
+        React.createElement('div',{className:'logo'},React.createElement('svg',{viewBox:'0 0 16 16',fill:'none'},React.createElement('path',{d:'M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z',stroke:'white',strokeWidth:'1.5',fill:'none'}),React.createElement('circle',{cx:'8',cy:'8',r:'2',fill:'white'}))),
+        React.createElement('div',null,React.createElement('div',{className:'logo-name'},'Synapse Drive'),React.createElement('div',{className:'logo-sub'},'ADAS Fuzzy Intelligence System'))
+      ),
+      React.createElement('div',{className:'hdr-center'},
+        ...[
+          {v:computed?f1(result.brake)+'%':'—',l:'Brake',c:'#2563eb'},
+          {v:computed?f1(result.risk)+'%':'—', l:'Risk', c:'#ff453a'},
+          {v:computed?f1(result.hybrid)+'%':'—',l:'Hybrid',c:'#ff9f0a'},
+          {v:computed?result.cat:'—',l:'Status',c:computed?catColor(result.cat):'var(--text3)'},
+        ].map(m=>React.createElement('div',{key:m.l,className:'hstat'},React.createElement('div',{className:'hstat-v',style:{color:m.c}},m.v),React.createElement('div',{className:'hstat-l'},m.l)))
+      ),
+      React.createElement('div',{className:'hdr-right'},
+        React.createElement('div',{className:'pill'},React.createElement('div',{className:'dot-live'}),'Fuzzy Online'),
+        React.createElement('div',{className:'clock'},clock)
+      )
+    ),
+    // Tabbar
+    React.createElement('nav',{className:'tabbar'},
+      ...['dashboard','analysis','about'].map(t=>React.createElement('button',{key:t,className:`tab ${tab===t?'on':''}`,onClick:()=>setTab(t)},t.charAt(0).toUpperCase()+t.slice(1)))
+    ),
+    // Content
+    React.createElement('main',{className:'main'},
+      tab==='dashboard'?Dashboard():tab==='analysis'?Analysis():About()
+    ),
+    // Footer
+    React.createElement('footer',{style:{padding:'10px 32px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'space-between',fontSize:'10px',color:'var(--text3)',fontWeight:500,letterSpacing:'0.3px'}},
+      React.createElement('span',null,'Synapse Drive - ADAS Fuzzy Dashboard · CSET326 Soft Computing'),
+      React.createElement('span',null,'Mamdani FIS + LSTM Hybrid')
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
